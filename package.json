@@ -1,0 +1,14 @@
+{
+  "name": "reginald",
+  "private": true,
+  "packageManager": "pnpm@9",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "echo no lint yet",
+    "typecheck": "echo no typecheck yet",
+    "test": "echo no tests yet"
+  }
+}
