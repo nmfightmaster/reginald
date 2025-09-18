@@ -17,23 +17,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "pnpm" # cache is fine; it doesn't install pnpm
 
-      - name: Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@9 --activate
-          pnpm --version
-          which pnpm
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Install deps (frontend)
         run: pnpm install || echo "no package.json yet"
+        working-directory: .
 
       - name: Lint
         run: pnpm run lint || echo "no lint yet"
+        working-directory: .
 
       - name: Typecheck
         run: pnpm run typecheck || echo "no typecheck yet"
+        working-directory: .
 
       - name: Test
         run: pnpm test -- --coverage || echo "no tests yet"
+        working-directory: .
+
+  # Rust/Tauri job can be added once src-tauri exists.
