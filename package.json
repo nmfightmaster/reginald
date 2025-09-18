@@ -1,7 +1,7 @@
 {
   "name": "reginald",
   "private": true,
-  "packageManager": "pnpm@9",
+  "packageManager": "pnpm",
   "workspaces": [
     "apps/*",
     "packages/*"
