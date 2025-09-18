@@ -7,8 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "lint": "echo no lint yet",
-    "typecheck": "echo no typecheck yet",
-    "test": "echo no tests yet"
+    "dev": "pnpm --filter @reginald/desktop run tauri dev",
+    "build": "pnpm --filter @reginald/desktop run tauri build",
+    "typecheck": "pnpm --filter @reginald/desktop exec tsc --noEmit",
+    "lint": "echo \"lint not set up yet\""
   }
 }
