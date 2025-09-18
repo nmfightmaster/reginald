@@ -1,0 +1,6 @@
+dist
+build
+node_modules
+.vite
+target
+apps/desktop/src-tauri/target
