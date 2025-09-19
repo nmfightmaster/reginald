@@ -15,7 +15,6 @@ export async function addNode(title: string, body?: string) {
   const db = await getDb();
 
   const createdAt = Date.now();
-  // Simpler and portable: exec with positional binds
   db.exec?.({
     sql: 'INSERT INTO nodes (title, body, createdAt) VALUES (?1, ?2, ?3)',
     bind: [title.trim(), body ?? null, createdAt],
@@ -40,13 +39,14 @@ export async function listNodesNewestFirst(): Promise<Node[]> {
   }));
 }
 
-export async function deleteNode(id: number) {
+/**
+ * Delete a node by id. No-op if id does not exist.
+ */
+export async function deleteNode(id: number): Promise<void> {
   await ensureSchema();
   const db = await getDb();
-
   db.exec?.({
     sql: 'DELETE FROM nodes WHERE id = ?1',
     bind: [id],
   });
 }
-
