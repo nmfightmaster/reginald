@@ -36,11 +36,11 @@ export function useNodes() {
   }, [refresh]);
 
   const add = useCallback(
-    async (title: string) => {
+    async (title: string, body?: string) => {
       setIsSubmitting(true);
       setError(null);
       try {
-        await addNode(title);
+        await addNode(title, body);
         await refresh();
       } catch (e: any) {
         setError(e?.message ?? 'Failed to add node');
