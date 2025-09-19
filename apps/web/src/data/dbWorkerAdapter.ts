@@ -1,40 +1,49 @@
 // apps/web/src/data/dbWorkerAdapter.ts
-// Worker-backed DatabaseAdapter (stub): constructs a Worker, but for now
-// all exec() calls still run on the main thread to preserve behavior.
+// Worker-backed DatabaseAdapter (stub). In this step we only prove IPC typed wiring.
+// All exec() calls still run on main thread (no behavior change).
 
 import { getDb } from './db';
-
-// Duplicate of the minimal ExecParams to avoid circular imports.
-// Keep in sync with dbAdapter.ts during this scaffold phase.
-export type ExecParams =
-  | string
-  | {
-      sql: string;
-      bind?: any[];
-      rowMode?: 'object' | 'array';
-      callback?: (row: any) => void;
-    };
-
-export interface DatabaseAdapter {
-  exec(params: ExecParams): void;
-}
+import type { ExecParams, DatabaseAdapter } from './dbAdapter';
+import { makeRequestId, type IpcRequest, type IpcResponse } from './ipc';
 
 export async function createWorkerAdapter(): Promise<DatabaseAdapter> {
-  // Construct the worker. This ensures the worker file compiles and loads.
   const worker = new Worker(new URL('../workers/sqlite.worker.ts', import.meta.url), {
     type: 'module',
   });
 
-  // Simple connectivity check (non-blocking).
-  worker.postMessage({ type: 'ping' });
-  worker.onmessage = (e) => {
-    if (e?.data?.type === 'pong') {
+  // Simple request/response map
+  const pending = new Map<string, (res: IpcResponse) => void>();
+
+  worker.onmessage = (e: MessageEvent<IpcResponse>) => {
+    const res = e.data;
+    const key = res?.id;
+    if (key && pending.has(key)) {
+      const resolve = pending.get(key)!;
+      pending.delete(key);
+      resolve(res);
+    }
+    if (res?.type === 'error') {
       // eslint-disable-next-line no-console
-      console.info('[sqlite-worker] pong');
+      console.error('[sqlite-worker] error:', res.error);
     }
   };
 
-  // TEMP: delegate to main thread DB until we implement message-based exec.
+  function send<T extends IpcRequest>(msg: T): Promise<IpcResponse> {
+    return new Promise((resolve) => {
+      pending.set(msg.id, resolve);
+      worker.postMessage(msg);
+    });
+  }
+
+  // Non-blocking pings just to prove wiring
+  void send({ id: makeRequestId(), type: 'ping' }).then((r) => {
+    if (r.type === 'pong') console.info('[sqlite-worker] pong');
+  });
+  void send({ id: makeRequestId(), type: 'status' }).then((r) => {
+    if (r.type === 'status') console.info('[sqlite-worker] status.ready =', r.ready);
+  });
+
+  // TEMP: delegate to main-thread DB until we implement worker-side sqlite
   const db = await getDb();
 
   return {

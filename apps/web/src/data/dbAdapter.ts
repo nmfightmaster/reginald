@@ -14,7 +14,7 @@ export interface DatabaseAdapter {
   exec(params: ExecParams): void;
 }
 
-// Feature flag: keep Worker mode OFF for now.
+// Feature flag: keep Worker mode OFF for now (no behavior change).
 const enableSqliteWorker = false;
 
 async function createMainThreadAdapter(): Promise<DatabaseAdapter> {
@@ -30,13 +30,8 @@ async function createMainThreadAdapter(): Promise<DatabaseAdapter> {
   };
 }
 
-/**
- * Returns a DatabaseAdapter. Currently main-thread only.
- * When enableSqliteWorker=true, it builds a Worker-backed adapter (still delegating to main thread until implemented).
- */
 export async function getDbAdapter(): Promise<DatabaseAdapter> {
   if (enableSqliteWorker) {
-    // Dynamic import to avoid circular deps and let Vite split chunks.
     const { createWorkerAdapter } = await import('./dbWorkerAdapter');
     return createWorkerAdapter();
   }
