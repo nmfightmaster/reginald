@@ -1,11 +1,13 @@
 // apps/web/src/pages/NodesPage.tsx
 import { useState } from 'react';
 import { useNodes } from '../hooks/useNodes';
+import { usePersistenceMode } from '../hooks/usePersistenceMode';
 
 export default function NodesPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const { nodes, isLoading, isSubmitting, deletingId, error, add, remove } = useNodes();
+  const mode = usePersistenceMode();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,9 +19,30 @@ export default function NodesPage() {
     setBody('');
   }
 
+  const pillStyle: React.CSSProperties = {
+    padding: '2px 8px',
+    borderRadius: 999,
+    fontSize: 12,
+    border: '1px solid rgba(0,0,0,0.15)',
+    background: 'rgba(0,0,0,0.03)',
+  };
+
   return (
-    <div style={{ padding: 16, maxWidth: 560 }}>
-      <h1 style={{ margin: '0 0 12px' }}>Nodes</h1>
+    <div style={{ padding: 16, maxWidth: 640 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h1 style={{ margin: 0 }}>Nodes</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={pillStyle}>
+            Persistence: {mode ?? '…'}
+          </span>
+        </div>
+      </div>
+
+      {mode === 'memory' ? (
+        <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
+          Data is in memory for now and will reset on reload. We’ll switch to OPFS persistence by moving SQLite into a Web Worker soon.
+        </div>
+      ) : null}
 
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
         <input
