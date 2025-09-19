@@ -17,7 +17,8 @@
     "lint": "eslint --no-error-on-unmatched-pattern \"apps/**/*.{ts,tsx,js,jsx}\" \"packages/**/*.{ts,tsx,js,jsx}\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm web:typecheck && pnpm desktop:typecheck"
+    "typecheck": "pnpm web:typecheck && pnpm desktop:typecheck",
+    "release": "semantic-release"
   },
   "dependencies": {
     "@eslint/js": "^9.35.0",
