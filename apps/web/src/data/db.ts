@@ -44,3 +44,52 @@ export function initSqlite() {
 
   return initPromise;
 }
+
+let dbInstance: any | null = null;
+
+/**
+ * Returns a singleton SQLite connection.
+ * - OPFS: uses persistent storage
+ * - Fallback: in-memory DB (non-persistent)
+ */
+export async function getDb() {
+  if (dbInstance) return dbInstance;
+
+  const { sqlite3, persistenceMode } = await initSqlite();
+
+  // Prefer the convenience OpfsDb wrapper if available
+  const OpfsDb = (sqlite3 as any)?.oo1?.OpfsDb;
+  const DB = (sqlite3 as any)?.oo1?.DB;
+
+  if (persistenceMode === 'opfs' && typeof OpfsDb === 'function') {
+    dbInstance = new OpfsDb('reginald.db'); // persisted via OPFS
+    console.info('[sqlite-wasm] DB opened in OPFS: reginald.db');
+  } else if (typeof DB === 'function') {
+    dbInstance = new DB(':memory:', 'ct'); // non-persistent fallback
+    console.warn('[sqlite-wasm] OPFS unavailable; using in-memory DB');
+  } else {
+    throw new Error('sqlite3 oo1 API not available');
+  }
+
+  return dbInstance;
+}
+
+let schemaReady = false;
+
+export async function ensureSchema() {
+  if (schemaReady) return;
+
+  const db = await getDb();
+  // Table: nodes(id, title, body, createdAt)
+  db.exec?.(`
+    CREATE TABLE IF NOT EXISTS nodes (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      body TEXT,
+      createdAt INTEGER NOT NULL
+    );
+  `);
+
+  schemaReady = true;
+  console.info('[sqlite-wasm] schema ensured');
+}
