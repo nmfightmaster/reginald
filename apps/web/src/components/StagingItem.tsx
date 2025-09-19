@@ -7,8 +7,10 @@ interface StagingItemProps {
   onDiscard: (id: number) => void;
   onFile: (id: number) => void;
   onUpdateTags: (id: number, tags: string[]) => Promise<void>;
+  onSummarize: (id: number) => Promise<void>;
   isDiscarding: boolean;
   isFiling: boolean;
+  isSummarizing: boolean;
 }
 
 export default function StagingItem({
@@ -16,11 +18,14 @@ export default function StagingItem({
   onDiscard,
   onFile,
   onUpdateTags,
+  onSummarize,
   isDiscarding,
   isFiling,
+  isSummarizing,
 }: StagingItemProps) {
   const [tagInput, setTagInput] = useState('');
   const tags: string[] = item.tags ? JSON.parse(item.tags) : [];
+  const meta = item.meta ? JSON.parse(item.meta) : {};
 
   async function addTag(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +71,14 @@ export default function StagingItem({
             {isFiling ? 'Filing…' : 'File'}
           </button>
           <button
+            onClick={() => onSummarize(item.id)}
+            disabled={isSummarizing}
+            style={{ padding: '6px 10px' }}
+            aria-label={`Summarize ${item.title ?? 'staging item'}`}
+          >
+            {isSummarizing ? 'Summarizing…' : 'Summarize'}
+          </button>
+          <button
             onClick={() => onDiscard(item.id)}
             disabled={isDiscarding}
             style={{ padding: '6px 10px' }}
@@ -78,6 +91,13 @@ export default function StagingItem({
 
       {item.content ? (
         <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.content}</div>
+      ) : null}
+
+      {/* Show summary if present */}
+      {meta.summary ? (
+        <div style={{ fontStyle: 'italic', fontSize: 13, background: 'rgba(0,0,0,0.03)', padding: 6, borderRadius: 6 }}>
+          Summary: {meta.summary}
+        </div>
       ) : null}
 
       {/* Tags */}

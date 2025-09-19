@@ -101,3 +101,29 @@ export async function updateStagingTags(id: number, tags: string[]): Promise<voi
   });
 }
 
+export async function updateStagingSummary(id: number, summary: string): Promise<void> {
+  const db = await getDb();
+
+  // Load current meta JSON (if any)
+  const rows = db.selectObjects?.(
+    `SELECT meta FROM staging_items WHERE id = ?;`,
+    [id]
+  ) as { meta: string | null }[];
+
+  let meta: any = {};
+  if (rows && rows.length > 0 && rows[0].meta) {
+    try {
+      meta = JSON.parse(rows[0].meta);
+    } catch {
+      meta = {};
+    }
+  }
+
+  // Update summary
+  meta.summary = summary;
+
+  db.exec?.({
+    sql: `UPDATE staging_items SET meta = ? WHERE id = ?;`,
+    bind: [JSON.stringify(meta), id],
+  });
+}

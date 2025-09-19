@@ -6,6 +6,7 @@ import {
   discardStagingItem,
   fileStagingItem,
   updateStagingTags,
+  updateStagingSummary,
   type StagingItemRow,
 } from '../data/staging';
 import CaptureForm from '../components/CaptureForm';
@@ -17,6 +18,7 @@ export default function StagingPage() {
   const [loading, setLoading] = useState(true);
   const [discardingId, setDiscardingId] = useState<number | null>(null);
   const [filingId, setFilingId] = useState<number | null>(null);
+  const [summarizingId, setSummarizingId] = useState<number | null>(null);
 
   async function refresh() {
     const rows = await listStagingItems({ limit: 50 });
@@ -48,6 +50,14 @@ export default function StagingPage() {
   async function updateTags(id: number, tags: string[]) {
     await updateStagingTags(id, tags);
     await refresh();
+  }
+
+  async function summarize(id: number) {
+    setSummarizingId(id);
+    // Placeholder summary for now
+    await updateStagingSummary(id, 'This is a placeholder summary.');
+    await refresh();
+    setSummarizingId(null);
   }
 
   return (
@@ -104,8 +114,10 @@ export default function StagingPage() {
               onDiscard={discard}
               onFile={fileItem}
               onUpdateTags={updateTags}
+              onSummarize={summarize}
               isDiscarding={discardingId === item.id}
               isFiling={filingId === item.id}
+              isSummarizing={summarizingId === item.id}
             />
           ))}
         </ul>
