@@ -4,10 +4,18 @@ import type { StagingItemRow } from '../data/staging';
 interface StagingItemProps {
   item: StagingItemRow;
   onDiscard: (id: number) => void;
+  onFile: (id: number) => void;
   isDiscarding: boolean;
+  isFiling: boolean;
 }
 
-export default function StagingItem({ item, onDiscard, isDiscarding }: StagingItemProps) {
+export default function StagingItem({
+  item,
+  onDiscard,
+  onFile,
+  isDiscarding,
+  isFiling,
+}: StagingItemProps) {
   return (
     <li
       style={{
@@ -28,14 +36,24 @@ export default function StagingItem({ item, onDiscard, isDiscarding }: StagingIt
             {item.kind} • {new Date(item.createdAt).toLocaleString()}
           </div>
         </div>
-        <button
-          onClick={() => onDiscard(item.id)}
-          disabled={isDiscarding}
-          style={{ padding: '6px 10px' }}
-          aria-label={`Discard ${item.title ?? 'staging item'}`}
-        >
-          {isDiscarding ? 'Discarding…' : 'Discard'}
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => onFile(item.id)}
+            disabled={isFiling}
+            style={{ padding: '6px 10px' }}
+            aria-label={`File ${item.title ?? 'staging item'}`}
+          >
+            {isFiling ? 'Filing…' : 'File'}
+          </button>
+          <button
+            onClick={() => onDiscard(item.id)}
+            disabled={isDiscarding}
+            style={{ padding: '6px 10px' }}
+            aria-label={`Discard ${item.title ?? 'staging item'}`}
+          >
+            {isDiscarding ? 'Discarding…' : 'Discard'}
+          </button>
+        </div>
       </div>
       {item.content ? (
         <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.content}</div>

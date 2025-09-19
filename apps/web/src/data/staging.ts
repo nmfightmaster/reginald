@@ -1,5 +1,6 @@
 // apps/web/src/data/staging.ts
 import { getDb } from './db';
+import { addNode } from './nodes';
 
 /**
  * Exact shape of a row in the staging_items table.
@@ -17,11 +18,6 @@ export interface StagingItemRow {
   meta: string | null; // JSON string (e.g. '{"size":123,"mime":"text/plain"}')
 }
 
-/**
- * Insert a new staging item.
- * - Fills in createdAt automatically.
- * - Returns the inserted row ID.
- */
 export async function insertStagingItem(
   item: Omit<StagingItemRow, 'id' | 'createdAt'>
 ): Promise<number> {
@@ -46,17 +42,12 @@ export async function insertStagingItem(
     ],
   });
 
-  // SQLite oo1 API doesn’t return lastInsertRowId directly,
-  // but we can query it in the same connection:
   const rows = db.selectObjects?.(
     'SELECT last_insert_rowid() as id;'
   ) as { id: number }[];
   return rows[0].id;
 }
 
-/**
- * List staging items, newest first.
- */
 export async function listStagingItems(
   opts: { limit?: number; offset?: number } = {}
 ): Promise<StagingItemRow[]> {
@@ -74,4 +65,30 @@ export async function listStagingItems(
   ) as StagingItemRow[];
 
   return rows ?? [];
+}
+
+export async function discardStagingItem(id: number): Promise<void> {
+  const db = await getDb();
+  db.exec?.({
+    sql: `DELETE FROM staging_items WHERE id = ?;`,
+    bind: [id],
+  });
+}
+
+export async function fileStagingItem(id: number): Promise<void> {
+  const db = await getDb();
+
+  const rows = db.selectObjects?.(
+    `SELECT * FROM staging_items WHERE id = ?;`,
+    [id]
+  ) as StagingItemRow[];
+
+  if (!rows || rows.length === 0) return;
+  const item = rows[0];
+
+  // Use the same API NodesPage uses
+  await addNode(item.title ?? '(untitled)', item.content ?? undefined);
+
+  // Remove from staging
+  await discardStagingItem(id);
 }

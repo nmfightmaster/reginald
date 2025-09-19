@@ -1,15 +1,21 @@
 // apps/web/src/pages/StagingPage.tsx
 import { useEffect, useState } from 'react';
-import { insertStagingItem, listStagingItems, type StagingItemRow } from '../data/staging';
+import {
+  insertStagingItem,
+  listStagingItems,
+  discardStagingItem,
+  fileStagingItem,
+  type StagingItemRow,
+} from '../data/staging';
 import CaptureForm from '../components/CaptureForm';
 import PersistencePill from '../components/PersistencePill';
 import StagingItem from '../components/StagingItem';
-import { getDb } from '../data/db';
 
 export default function StagingPage() {
   const [items, setItems] = useState<StagingItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [discardingId, setDiscardingId] = useState<number | null>(null);
+  const [filingId, setFilingId] = useState<number | null>(null);
 
   async function refresh() {
     const rows = await listStagingItems({ limit: 50 });
@@ -26,18 +32,28 @@ export default function StagingPage() {
 
   async function discard(id: number) {
     setDiscardingId(id);
-    const db = await getDb();
-    db.exec?.({
-      sql: `DELETE FROM staging_items WHERE id = ?;`,
-      bind: [id],
-    });
+    await discardStagingItem(id);
     await refresh();
     setDiscardingId(null);
   }
 
+  async function fileItem(id: number) {
+    setFilingId(id);
+    await fileStagingItem(id);
+    await refresh();
+    setFilingId(null);
+  }
+
   return (
     <div style={{ padding: 16, maxWidth: 640 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          marginBottom: 12,
+        }}
+      >
         <h1 style={{ margin: 0 }}>Staging</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <PersistencePill />
@@ -66,13 +82,23 @@ export default function StagingPage() {
       ) : items.length === 0 ? (
         <div style={{ opacity: 0.7 }}>No staging items yet.</div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
+        <ul
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+            display: 'grid',
+            gap: 8,
+          }}
+        >
           {items.map((item) => (
             <StagingItem
               key={item.id}
               item={item}
               onDiscard={discard}
+              onFile={fileItem}
               isDiscarding={discardingId === item.id}
+              isFiling={filingId === item.id}
             />
           ))}
         </ul>
