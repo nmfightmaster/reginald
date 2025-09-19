@@ -4,6 +4,7 @@
 export type IpcRequest =
   | { id: string; type: 'ping' }
   | { id: string; type: 'status' }
+  | { id: string; type: 'init' }
   | { id: string; type: 'execNoRows'; sql: string; bind?: any[] }
   | { id: string; type: 'select'; sql: string; bind?: any[]; rowMode?: 'object' | 'array' };
 

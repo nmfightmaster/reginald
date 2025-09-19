@@ -26,7 +26,6 @@ async function ensureInit() {
 
     db = new OpfsDb('reginald.db');
 
-    // Ensure schema here so both writes and reads work without main thread touching DB
     db.exec?.(`
       CREATE TABLE IF NOT EXISTS nodes (
         id INTEGER PRIMARY KEY,
@@ -37,6 +36,7 @@ async function ensureInit() {
     `);
 
     isReady = true;
+    // eslint-disable-next-line no-console
     console.info('[sqlite-worker] initialized with OPFS DB: reginald.db');
   })();
 
@@ -54,6 +54,11 @@ self.addEventListener('message', async (ev: MessageEvent<IpcRequest>) => {
         break;
       }
       case 'status': {
+        post({ id: msg.id, type: 'status', ready: isReady });
+        break;
+      }
+      case 'init': {
+        await ensureInit();
         post({ id: msg.id, type: 'status', ready: isReady });
         break;
       }
