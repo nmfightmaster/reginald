@@ -11,16 +11,16 @@ export type ExecParams =
     };
 
 export interface DatabaseAdapter {
-  exec(params: ExecParams): void;
+  exec(params: ExecParams): Promise<void>;
 }
 
-// Feature flag: keep Worker mode OFF for now (no behavior change).
-const enableSqliteWorker = false;
+// Flip the Worker adapter ON for both reads and writes.
+const enableSqliteWorker = true;
 
 async function createMainThreadAdapter(): Promise<DatabaseAdapter> {
   const db = await getDb();
   return {
-    exec(params: ExecParams) {
+    async exec(params: ExecParams): Promise<void> {
       if (typeof params === 'string') {
         db.exec?.(params);
       } else {
@@ -31,6 +31,14 @@ async function createMainThreadAdapter(): Promise<DatabaseAdapter> {
 }
 
 export async function getDbAdapter(): Promise<DatabaseAdapter> {
+  if (enableSqliteWorker) {
+    const { createWorkerAdapter } = await import('./dbWorkerAdapter');
+    return createWorkerAdapter();
+  }
+  return createMainThreadAdapter();
+}
+
+export async function getWriteAdapter(): Promise<DatabaseAdapter> {
   if (enableSqliteWorker) {
     const { createWorkerAdapter } = await import('./dbWorkerAdapter');
     return createWorkerAdapter();

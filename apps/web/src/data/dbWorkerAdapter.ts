@@ -1,17 +1,10 @@
 // apps/web/src/data/dbWorkerAdapter.ts
-// Worker-backed DatabaseAdapter (stub). In this step we only prove IPC typed wiring.
-// All exec() calls still run on main thread (no behavior change).
-
-import { getDb } from './db';
 import type { ExecParams, DatabaseAdapter } from './dbAdapter';
 import { makeRequestId, type IpcRequest, type IpcResponse } from './ipc';
 
 export async function createWorkerAdapter(): Promise<DatabaseAdapter> {
-  const worker = new Worker(new URL('../workers/sqlite.worker.ts', import.meta.url), {
-    type: 'module',
-  });
+  const worker = new Worker(new URL('../workers/sqlite.worker.ts', import.meta.url), { type: 'module' });
 
-  // Simple request/response map
   const pending = new Map<string, (res: IpcResponse) => void>();
 
   worker.onmessage = (e: MessageEvent<IpcResponse>) => {
@@ -23,7 +16,6 @@ export async function createWorkerAdapter(): Promise<DatabaseAdapter> {
       resolve(res);
     }
     if (res?.type === 'error') {
-      // eslint-disable-next-line no-console
       console.error('[sqlite-worker] error:', res.error);
     }
   };
@@ -35,24 +27,33 @@ export async function createWorkerAdapter(): Promise<DatabaseAdapter> {
     });
   }
 
-  // Non-blocking pings just to prove wiring
-  void send({ id: makeRequestId(), type: 'ping' }).then((r) => {
-    if (r.type === 'pong') console.info('[sqlite-worker] pong');
-  });
+  // Non-blocking status note
   void send({ id: makeRequestId(), type: 'status' }).then((r) => {
     if (r.type === 'status') console.info('[sqlite-worker] status.ready =', r.ready);
   });
 
-  // TEMP: delegate to main-thread DB until we implement worker-side sqlite
-  const db = await getDb();
-
   return {
-    exec(params: ExecParams) {
-      if (typeof params === 'string') {
-        db.exec?.(params);
-      } else {
-        db.exec?.(params as any);
+    async exec(params: ExecParams): Promise<void> {
+      // Reads (SELECTs with callback): fetch rows and replay callback locally.
+      if (typeof params !== 'string' && (params.rowMode || params.callback)) {
+        const sql = params.sql;
+        const bind = params.bind ?? [];
+        const rowMode = params.rowMode ?? 'object';
+        const cb = params.callback;
+        const res = await send({ id: makeRequestId(), type: 'select', sql, bind, rowMode });
+        if (res.type === 'rows' && cb) {
+          for (const row of res.rows) cb(row);
+        } else if (res.type === 'error') {
+          throw new Error(res.error);
+        }
+        return;
       }
+
+      // Writes / DDL: wait for 'ok' before returning to avoid races
+      const sql = typeof params === 'string' ? params : params.sql;
+      const bind = typeof params === 'string' ? undefined : params.bind;
+      const res = await send({ id: makeRequestId(), type: 'execNoRows', sql, bind });
+      if (res.type === 'error') throw new Error(res.error);
     },
   };
 }
