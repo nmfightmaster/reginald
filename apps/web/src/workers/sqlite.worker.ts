@@ -1,9 +1,9 @@
 // apps/web/src/workers/sqlite.worker.ts
 import type { IpcRequest, IpcResponse } from '../data/ipc';
 
-let initPromise: Promise<void> | null = null;
 let sqlite3: any = null;
 let db: any = null;
+let initPromise: Promise<void> | null = null;
 let isReady = false;
 
 function post(msg: IpcResponse) {
@@ -26,6 +26,7 @@ async function ensureInit() {
 
     db = new OpfsDb('reginald.db');
 
+    // Ensure schema (nodes + staging_items)
     db.exec?.(`
       CREATE TABLE IF NOT EXISTS nodes (
         id INTEGER PRIMARY KEY,
@@ -35,9 +36,25 @@ async function ensureInit() {
       );
     `);
 
+    db.exec?.(`
+      CREATE TABLE IF NOT EXISTS staging_items (
+        id INTEGER PRIMARY KEY,
+        kind TEXT NOT NULL CHECK(kind IN ('text','file','url','clipboard')),
+        title TEXT,
+        content TEXT,
+        filePath TEXT,
+        source TEXT NOT NULL CHECK(source IN ('manual','dragdrop','clipboard','import')),
+        tags TEXT,
+        createdAt INTEGER NOT NULL,
+        meta TEXT
+      );
+    `);
+
+    db.exec?.(`CREATE INDEX IF NOT EXISTS idx_staging_items_createdAt ON staging_items(createdAt DESC);`);
+    db.exec?.(`CREATE INDEX IF NOT EXISTS idx_staging_items_kind ON staging_items(kind);`);
+
     isReady = true;
-    // eslint-disable-next-line no-console
-    console.info('[sqlite-worker] initialized with OPFS DB: reginald.db');
+    console.info('[sqlite-worker] OPFS DB opened and schema ensured');
   })();
 
   return initPromise;
@@ -84,7 +101,7 @@ self.addEventListener('message', async (ev: MessageEvent<IpcRequest>) => {
         post({
           id: (msg as any)?.id ?? 'unknown',
           type: 'error',
-          error: `unknown message type: ${String((msg as any).type)}`,
+          error: `unknown message type: ${String((msg as any)?.type ?? 'undefined')}`,
         });
       }
     }

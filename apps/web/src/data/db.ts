@@ -70,6 +70,8 @@ export async function ensureSchema() {
   if (schemaReady) return;
 
   const db = await getDb();
+
+  // Nodes table (already existing)
   db.exec?.(`
     CREATE TABLE IF NOT EXISTS nodes (
       id INTEGER PRIMARY KEY,
@@ -78,6 +80,25 @@ export async function ensureSchema() {
       createdAt INTEGER NOT NULL
     );
   `);
+
+  // New: Staging items table
+  db.exec?.(`
+    CREATE TABLE IF NOT EXISTS staging_items (
+      id INTEGER PRIMARY KEY,
+      kind TEXT NOT NULL CHECK(kind IN ('text','file','url','clipboard')),
+      title TEXT,
+      content TEXT,
+      filePath TEXT,
+      source TEXT NOT NULL CHECK(source IN ('manual','dragdrop','clipboard','import')),
+      tags TEXT,
+      createdAt INTEGER NOT NULL,
+      meta TEXT
+    );
+  `);
+
+  // Helpful indexes for staging_items
+  db.exec?.(`CREATE INDEX IF NOT EXISTS idx_staging_items_createdAt ON staging_items(createdAt DESC);`);
+  db.exec?.(`CREATE INDEX IF NOT EXISTS idx_staging_items_kind ON staging_items(kind);`);
 
   schemaReady = true;
   console.info('[sqlite-wasm] schema ensured');
