@@ -12,7 +12,8 @@
     "lint": "eslint --no-error-on-unmatched-pattern \"apps/**/*.{ts,tsx,js,jsx}\" \"packages/**/*.{ts,tsx,js,jsx}\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc -p apps/desktop/tsconfig.json --noEmit"
+    "typecheck": "tsc -p apps/desktop/tsconfig.json --noEmit",
+    "release": "semantic-release"
   },
   "dependencies": {
     "@eslint/js": "^9.35.0",
