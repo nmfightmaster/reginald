@@ -83,7 +83,7 @@ export async function ensureSchema() {
   console.info('[sqlite-wasm] schema ensured');
 }
 
-// --- New: expose current persistence mode ---
+// --- Expose current persistence mode ---
 export async function getPersistenceMode(): Promise<'opfs' | 'memory'> {
   const { persistenceMode } = await initSqlite();
   return persistenceMode;

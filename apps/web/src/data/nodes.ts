@@ -1,5 +1,6 @@
 // apps/web/src/data/nodes.ts
-import { ensureSchema, getDb } from './db';
+import { ensureSchema } from './db';
+import { getDbAdapter } from './dbAdapter';
 
 export type Node = {
   id: number;
@@ -12,10 +13,10 @@ export async function addNode(title: string, body?: string) {
   if (!title?.trim()) throw new Error('title is required');
 
   await ensureSchema();
-  const db = await getDb();
+  const db = await getDbAdapter();
 
   const createdAt = Date.now();
-  db.exec?.({
+  db.exec({
     sql: 'INSERT INTO nodes (title, body, createdAt) VALUES (?1, ?2, ?3)',
     bind: [title.trim(), body ?? null, createdAt],
   });
@@ -23,14 +24,17 @@ export async function addNode(title: string, body?: string) {
 
 export async function listNodesNewestFirst(): Promise<Node[]> {
   await ensureSchema();
-  const db = await getDb();
+  const db = await getDbAdapter();
 
   const rows: Array<{ id: number; title: string; body?: string | null; createdAt: number }> = [];
-  db.exec?.({
+  db.exec({
     sql: 'SELECT id, title, body, createdAt FROM nodes ORDER BY createdAt DESC',
     rowMode: 'object',
-    callback: (row: any) => rows.push(row),
+    callback: (row: any) => {
+      rows.push(row);
+    },
   });
+
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -39,13 +43,10 @@ export async function listNodesNewestFirst(): Promise<Node[]> {
   }));
 }
 
-/**
- * Delete a node by id. No-op if id does not exist.
- */
 export async function deleteNode(id: number): Promise<void> {
   await ensureSchema();
-  const db = await getDb();
-  db.exec?.({
+  const db = await getDbAdapter();
+  db.exec({
     sql: 'DELETE FROM nodes WHERE id = ?1',
     bind: [id],
   });
