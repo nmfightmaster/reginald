@@ -2,12 +2,19 @@
 import { useState } from 'react';
 import type { StagingItemRow } from '../data/staging';
 
+interface NodeSummary {
+  id: number;
+  title: string;
+}
+
 interface StagingItemProps {
   item: StagingItemRow;
+  availableNodes: NodeSummary[];
   onDiscard: (id: number) => void;
   onFile: (id: number) => void;
   onUpdateTags: (id: number, tags: string[]) => Promise<void>;
   onSummarize: (id: number) => Promise<void>;
+  onUpdateLinks: (id: number, links: number[]) => Promise<void>;
   isDiscarding: boolean;
   isFiling: boolean;
   isSummarizing: boolean;
@@ -15,17 +22,22 @@ interface StagingItemProps {
 
 export default function StagingItem({
   item,
+  availableNodes,
   onDiscard,
   onFile,
   onUpdateTags,
   onSummarize,
+  onUpdateLinks,
   isDiscarding,
   isFiling,
   isSummarizing,
 }: StagingItemProps) {
   const [tagInput, setTagInput] = useState('');
+  const [selectedNodeId, setSelectedNodeId] = useState<number | ''>('');
+
   const tags: string[] = item.tags ? JSON.parse(item.tags) : [];
   const meta = item.meta ? JSON.parse(item.meta) : {};
+  const links: number[] = meta.links ?? [];
 
   async function addTag(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +51,19 @@ export default function StagingItem({
   async function removeTag(tag: string) {
     const newTags = tags.filter((t) => t !== tag);
     await onUpdateTags(item.id, newTags);
+  }
+
+  async function addLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedNodeId) return;
+    const newLinks = [...links, selectedNodeId];
+    await onUpdateLinks(item.id, newLinks);
+    setSelectedNodeId('');
+  }
+
+  async function removeLink(nodeId: number) {
+    const newLinks = links.filter((id) => id !== nodeId);
+    await onUpdateLinks(item.id, newLinks);
   }
 
   return (
@@ -66,7 +91,6 @@ export default function StagingItem({
             onClick={() => onFile(item.id)}
             disabled={isFiling}
             style={{ padding: '6px 10px' }}
-            aria-label={`File ${item.title ?? 'staging item'}`}
           >
             {isFiling ? 'Filing…' : 'File'}
           </button>
@@ -74,7 +98,6 @@ export default function StagingItem({
             onClick={() => onSummarize(item.id)}
             disabled={isSummarizing}
             style={{ padding: '6px 10px' }}
-            aria-label={`Summarize ${item.title ?? 'staging item'}`}
           >
             {isSummarizing ? 'Summarizing…' : 'Summarize'}
           </button>
@@ -82,7 +105,6 @@ export default function StagingItem({
             onClick={() => onDiscard(item.id)}
             disabled={isDiscarding}
             style={{ padding: '6px 10px' }}
-            aria-label={`Discard ${item.title ?? 'staging item'}`}
           >
             {isDiscarding ? 'Discarding…' : 'Discard'}
           </button>
@@ -93,7 +115,7 @@ export default function StagingItem({
         <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.content}</div>
       ) : null}
 
-      {/* Show summary if present */}
+      {/* Summary */}
       {meta.summary ? (
         <div style={{ fontStyle: 'italic', fontSize: 13, background: 'rgba(0,0,0,0.03)', padding: 6, borderRadius: 6 }}>
           Summary: {meta.summary}
@@ -101,7 +123,7 @@ export default function StagingItem({
       ) : null}
 
       {/* Tags */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {tags.map((tag) => (
           <span
             key={tag}
@@ -119,14 +141,7 @@ export default function StagingItem({
             {tag}
             <button
               onClick={() => removeTag(tag)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                fontSize: 12,
-                padding: 0,
-              }}
-              aria-label={`Remove tag ${tag}`}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
             >
               ×
             </button>
@@ -134,7 +149,7 @@ export default function StagingItem({
         ))}
       </div>
 
-      <form onSubmit={addTag} style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+      <form onSubmit={addTag} style={{ display: 'flex', gap: 6 }}>
         <input
           type="text"
           placeholder="Add tag…"
@@ -144,6 +159,54 @@ export default function StagingItem({
         />
         <button type="submit" disabled={!tagInput.trim()} style={{ padding: '6px 10px' }}>
           Add
+        </button>
+      </form>
+
+      {/* Links */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {links.map((nodeId) => {
+          const node = availableNodes.find((n) => n.id === nodeId);
+          return (
+            <span
+              key={nodeId}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 6px',
+                fontSize: 12,
+                border: '1px solid rgba(0,0,0,0.15)',
+                borderRadius: 999,
+                background: 'rgba(0,0,0,0.05)',
+              }}
+            >
+              {node ? node.title : `Node ${nodeId}`}
+              <button
+                onClick={() => removeLink(nodeId)}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </span>
+          );
+        })}
+      </div>
+
+      <form onSubmit={addLink} style={{ display: 'flex', gap: 6 }}>
+        <select
+          value={selectedNodeId}
+          onChange={(e) => setSelectedNodeId(Number(e.target.value))}
+          style={{ flex: 1, padding: 6 }}
+        >
+          <option value="">Select node…</option>
+          {availableNodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.title}
+            </option>
+          ))}
+        </select>
+        <button type="submit" disabled={!selectedNodeId} style={{ padding: '6px 10px' }}>
+          Link
         </button>
       </form>
     </li>
