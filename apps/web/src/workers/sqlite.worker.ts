@@ -99,9 +99,9 @@ self.addEventListener('message', async (ev: MessageEvent<IpcRequest>) => {
       }
       default: {
         post({
-          id: msg.id,
+          id: (msg as any)?.id ?? 'unknown',
           type: 'error',
-          error: `unknown message type: ${String(msg.type)}`,
+          error: `unknown message type: ${String((msg as any)?.type ?? 'undefined')}`,
         });
       }
     }
