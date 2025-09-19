@@ -26,6 +26,11 @@ jobs:
       - name: Install deps (frontend)
         run: pnpm install || echo "no package.json yet"
 
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm release || echo "no release yet"
+
       - name: Lint
         run: pnpm lint || echo "no lint yet"
 
