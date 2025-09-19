@@ -5,6 +5,7 @@ import {
   listStagingItems,
   discardStagingItem,
   fileStagingItem,
+  updateStagingTags,
   type StagingItemRow,
 } from '../data/staging';
 import CaptureForm from '../components/CaptureForm';
@@ -42,6 +43,11 @@ export default function StagingPage() {
     await fileStagingItem(id);
     await refresh();
     setFilingId(null);
+  }
+
+  async function updateTags(id: number, tags: string[]) {
+    await updateStagingTags(id, tags);
+    await refresh();
   }
 
   return (
@@ -97,6 +103,7 @@ export default function StagingPage() {
               item={item}
               onDiscard={discard}
               onFile={fileItem}
+              onUpdateTags={updateTags}
               isDiscarding={discardingId === item.id}
               isFiling={filingId === item.id}
             />

@@ -1,10 +1,12 @@
 // apps/web/src/components/StagingItem.tsx
+import { useState } from 'react';
 import type { StagingItemRow } from '../data/staging';
 
 interface StagingItemProps {
   item: StagingItemRow;
   onDiscard: (id: number) => void;
   onFile: (id: number) => void;
+  onUpdateTags: (id: number, tags: string[]) => Promise<void>;
   isDiscarding: boolean;
   isFiling: boolean;
 }
@@ -13,9 +15,27 @@ export default function StagingItem({
   item,
   onDiscard,
   onFile,
+  onUpdateTags,
   isDiscarding,
   isFiling,
 }: StagingItemProps) {
+  const [tagInput, setTagInput] = useState('');
+  const tags: string[] = item.tags ? JSON.parse(item.tags) : [];
+
+  async function addTag(e: React.FormEvent) {
+    e.preventDefault();
+    const t = tagInput.trim();
+    if (!t) return;
+    const newTags = [...tags, t];
+    await onUpdateTags(item.id, newTags);
+    setTagInput('');
+  }
+
+  async function removeTag(tag: string) {
+    const newTags = tags.filter((t) => t !== tag);
+    await onUpdateTags(item.id, newTags);
+  }
+
   return (
     <li
       style={{
@@ -55,9 +75,57 @@ export default function StagingItem({
           </button>
         </div>
       </div>
+
       {item.content ? (
         <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.content}</div>
       ) : null}
+
+      {/* Tags */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 6px',
+              fontSize: 12,
+              border: '1px solid rgba(0,0,0,0.15)',
+              borderRadius: 999,
+              background: 'rgba(0,0,0,0.03)',
+            }}
+          >
+            {tag}
+            <button
+              onClick={() => removeTag(tag)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                fontSize: 12,
+                padding: 0,
+              }}
+              aria-label={`Remove tag ${tag}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <form onSubmit={addTag} style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+        <input
+          type="text"
+          placeholder="Add tag…"
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          style={{ flex: 1, padding: 6, fontSize: 14 }}
+        />
+        <button type="submit" disabled={!tagInput.trim()} style={{ padding: '6px 10px' }}>
+          Add
+        </button>
+      </form>
     </li>
   );
 }

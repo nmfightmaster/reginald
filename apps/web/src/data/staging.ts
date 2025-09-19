@@ -92,3 +92,12 @@ export async function fileStagingItem(id: number): Promise<void> {
   // Remove from staging
   await discardStagingItem(id);
 }
+
+export async function updateStagingTags(id: number, tags: string[]): Promise<void> {
+  const db = await getDb();
+  db.exec?.({
+    sql: `UPDATE staging_items SET tags = ? WHERE id = ?;`,
+    bind: [JSON.stringify(tags), id],
+  });
+}
+
