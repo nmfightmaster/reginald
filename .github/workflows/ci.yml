@@ -27,12 +27,17 @@ jobs:
         run: pnpm install || echo "no package.json yet"
         working-directory: .
 
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm release || echo "no release yet"
+
       - name: Lint
-        run: pnpm run lint || echo "no lint yet"
+        run: pnpm lint || echo "no lint yet"
         working-directory: .
 
       - name: Typecheck
-        run: pnpm run typecheck || echo "no typecheck yet"
+        run: pnpm typecheck || echo "no typecheck yet"
         working-directory: .
 
       - name: Test
