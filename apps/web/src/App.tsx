@@ -1,13 +1,21 @@
 // apps/web/src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import reactLogo from './assets/react.svg';
 import viteLogo from '/vite.svg';
 import './App.css';
 
 import NodesPage from './pages/NodesPage';
+import { ensureSchema } from './data/db';
 
 function App() {
   const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    // Ensure DB schema (nodes + staging_items) is created on startup
+    ensureSchema().catch((err) => {
+      console.error('Failed to ensure schema:', err);
+    });
+  }, []);
 
   return (
     <>
