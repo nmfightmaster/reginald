@@ -1,11 +1,6 @@
 // apps/web/src/data/dbAdapter.ts
 import { getDb } from './db';
 
-/**
- * Minimal exec() signature compatible with sqlite3.oo1 DB.exec:
- * - Either a raw SQL string, or
- * - An object with sql + optional bind/rowMode/callback
- */
 export type ExecParams =
   | string
   | {
@@ -17,16 +12,13 @@ export type ExecParams =
 
 export interface DatabaseAdapter {
   exec(params: ExecParams): void;
-  // In the future we can add: prepare/run/get/close, or message-passing details for a Worker impl.
 }
 
-/**
- * Current adapter: forwards to the main-thread sqlite DB.
- * Later, this can proxy to a Web Worker without changing callers.
- */
-export async function getDbAdapter(): Promise<DatabaseAdapter> {
-  const db = await getDb();
+// Feature flag: keep Worker mode OFF for now.
+const enableSqliteWorker = false;
 
+async function createMainThreadAdapter(): Promise<DatabaseAdapter> {
+  const db = await getDb();
   return {
     exec(params: ExecParams) {
       if (typeof params === 'string') {
@@ -36,4 +28,17 @@ export async function getDbAdapter(): Promise<DatabaseAdapter> {
       }
     },
   };
+}
+
+/**
+ * Returns a DatabaseAdapter. Currently main-thread only.
+ * When enableSqliteWorker=true, it builds a Worker-backed adapter (still delegating to main thread until implemented).
+ */
+export async function getDbAdapter(): Promise<DatabaseAdapter> {
+  if (enableSqliteWorker) {
+    // Dynamic import to avoid circular deps and let Vite split chunks.
+    const { createWorkerAdapter } = await import('./dbWorkerAdapter');
+    return createWorkerAdapter();
+  }
+  return createMainThreadAdapter();
 }
