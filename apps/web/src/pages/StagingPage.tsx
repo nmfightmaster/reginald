@@ -3,10 +3,13 @@ import { useEffect, useState } from 'react';
 import { insertStagingItem, listStagingItems, type StagingItemRow } from '../data/staging';
 import CaptureForm from '../components/CaptureForm';
 import PersistencePill from '../components/PersistencePill';
+import StagingItem from '../components/StagingItem';
+import { getDb } from '../data/db';
 
 export default function StagingPage() {
   const [items, setItems] = useState<StagingItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discardingId, setDiscardingId] = useState<number | null>(null);
 
   async function refresh() {
     const rows = await listStagingItems({ limit: 50 });
@@ -20,6 +23,17 @@ export default function StagingPage() {
       setLoading(false);
     });
   }, []);
+
+  async function discard(id: number) {
+    setDiscardingId(id);
+    const db = await getDb();
+    db.exec?.({
+      sql: `DELETE FROM staging_items WHERE id = ?;`,
+      bind: [id],
+    });
+    await refresh();
+    setDiscardingId(null);
+  }
 
   return (
     <div style={{ padding: 16, maxWidth: 640 }}>
@@ -54,25 +68,12 @@ export default function StagingPage() {
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
           {items.map((item) => (
-            <li
+            <StagingItem
               key={item.id}
-              style={{
-                padding: 12,
-                border: '1px solid rgba(0,0,0,0.1)',
-                borderRadius: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{item.title || '(untitled)'}</div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {item.kind} • {new Date(item.createdAt).toLocaleString()}
-              </div>
-              {item.content ? (
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{item.content}</div>
-              ) : null}
-            </li>
+              item={item}
+              onDiscard={discard}
+              isDiscarding={discardingId === item.id}
+            />
           ))}
         </ul>
       )}

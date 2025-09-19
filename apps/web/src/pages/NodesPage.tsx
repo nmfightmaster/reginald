@@ -2,6 +2,7 @@
 import { useNodes } from '../hooks/useNodes';
 import CaptureForm from '../components/CaptureForm';
 import PersistencePill from '../components/PersistencePill';
+import NodeItem from '../components/NodeItem';
 
 export default function NodesPage() {
   const { nodes, isLoading, isSubmitting, deletingId, error, add, remove } = useNodes();
@@ -32,41 +33,17 @@ export default function NodesPage() {
         <div style={{ opacity: 0.7 }}>No nodes yet.</div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
-          {nodes.map((n) => {
-            const isDeleting = deletingId === n.id;
-            return (
-              <li
-                key={n.id}
-                style={{
-                  padding: 12,
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  borderRadius: 8,
-                  display: 'grid',
-                  gap: 6,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {n.title}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>{n.createdAt.toLocaleString()}</div>
-                  </div>
-                  <button
-                    onClick={() => remove(n.id)}
-                    disabled={isDeleting}
-                    style={{ padding: '6px 10px' }}
-                    aria-label={`Delete ${n.title}`}
-                  >
-                    {isDeleting ? 'Deleting…' : 'Delete'}
-                  </button>
-                </div>
-                {n.body ? (
-                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{n.body}</div>
-                ) : null}
-              </li>
-            );
-          })}
+          {nodes.map((n) => (
+            <NodeItem
+              key={n.id}
+              id={n.id}
+              title={n.title}
+              body={n.body ?? undefined}
+              createdAt={n.createdAt}
+              onDelete={remove}
+              isDeleting={deletingId === n.id}
+            />
+          ))}
         </ul>
       )}
     </div>
