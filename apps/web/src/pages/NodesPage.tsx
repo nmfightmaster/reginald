@@ -1,15 +1,18 @@
 // apps/web/src/pages/NodesPage.tsx
-import { useEffect } from 'react';
-import { initSqlite, getDb, ensureSchema } from '../data/db';
+import { useEffect, useRef } from 'react';
+import { addNode, listNodesNewestFirst } from '../data/nodes';
 
 export default function NodesPage() {
+  const ran = useRef(false);
+
   useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
     (async () => {
-      await initSqlite();
-      const db = await getDb();
-      void ensureSchema();
-      // No schema yet—just verifying the connection exists.
-      console.info('[sqlite-wasm] getDb() returned instance:', db ? 'ok' : 'null');
+      await addNode('First node from smoke test', 'optional body');
+      const nodes = await listNodesNewestFirst();
+      console.info('nodes:', nodes);
     })();
   }, []);
 
