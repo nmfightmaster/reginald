@@ -1,57 +1,24 @@
 // apps/web/src/pages/NodesPage.tsx
-import { useEffect, useRef, useState } from 'react';
-import { addNode, listNodesNewestFirst, deleteNode, type Node } from '../data/nodes';
+import { useState } from 'react';
+import { useNodes } from '../hooks/useNodes';
 
 export default function NodesPage() {
-  // Dev-only: guard StrictMode double effects
-  const ran = useRef(false);
-
   const [title, setTitle] = useState('');
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-
-  async function refresh() {
-    const data = await listNodesNewestFirst();
-    setNodes(data);
-  }
-
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-    void refresh();
-  }, []);
+  const { nodes, isLoading, isSubmitting, deletingId, error, add, remove } = useNodes();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const t = title.trim();
     if (!t) return;
-
-    setIsSubmitting(true);
-    try {
-      await addNode(t);
-      setTitle('');
-      await refresh();
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function onDelete(id: number) {
-    setDeletingId(id);
-    try {
-      await deleteNode(id);
-      await refresh();
-    } finally {
-      setDeletingId(null);
-    }
+    await add(t);
+    setTitle('');
   }
 
   return (
     <div style={{ padding: 16, maxWidth: 560 }}>
       <h1 style={{ margin: '0 0 12px' }}>Nodes</h1>
 
-      <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input
           type="text"
           placeholder="Title…"
@@ -66,7 +33,13 @@ export default function NodesPage() {
         </button>
       </form>
 
-      {nodes.length === 0 ? (
+      {error ? (
+        <div role="alert" style={{ color: 'crimson', marginBottom: 12 }}>{error}</div>
+      ) : null}
+
+      {isLoading ? (
+        <div style={{ opacity: 0.7 }}>Loading…</div>
+      ) : nodes.length === 0 ? (
         <div style={{ opacity: 0.7 }}>No nodes yet.</div>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
@@ -92,7 +65,7 @@ export default function NodesPage() {
                   <div style={{ fontSize: 12, opacity: 0.7 }}>{n.createdAt.toLocaleString()}</div>
                 </div>
                 <button
-                  onClick={() => onDelete(n.id)}
+                  onClick={() => remove(n.id)}
                   disabled={isDeleting}
                   style={{ padding: '6px 10px' }}
                   aria-label={`Delete ${n.title}`}
